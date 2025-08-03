@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>My Life Journey Timeline</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+/* ===== DIGITAL BACKGROUND ===== */
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    color: white;
+    background: #0a0a0a;
+    overflow-x: hidden;
+}
+canvas#bg {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: -1;
+}
+
+/* ===== HEADING ===== */
+h1 {
+    text-align: center;
+    margin-top: 20px;
+}
+
+/* ===== FILTER BAR ===== */
+.legend {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin: 15px;
+    position: relative;
+}
+.legend button {
+    background: #222;
+    color: white;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    font-weight: bold;
+    transition: transform 0.2s ease;
+}
+.legend button:hover {
+    transform: scale(1.15);
+}
+.legend button::after {
+    content: '';
+    position: absolute;
+    background: rgba(255,255,255,0.2);
+    border-radius: 50%;
+    width: 5px; height: 5px;
+    animation: ripple 0.6s linear;
+    opacity: 0;
+}
+@keyframes ripple {
+    0% {opacity: 1; transform: scale(0);}
+    100% {opacity: 0; transform: scale(8);}
+}
+
+/* ===== CURVED ARROW ===== */
+.arrow-path {
+    position: absolute;
+    top: -20px;
+    left: 0;
+    width: 100%;
+    height: 60px;
+    pointer-events: none;
+    z-index: 5;
+}
+.arrow-path path {
+    stroke: red;
+    stroke-width: 2;
+    fill: none;
+    stroke-dasharray: 800;
+    stroke-dashoffset: 800;
+    animation: drawArrow 4s infinite alternate;
+}
+@keyframes drawArrow {
+    to { stroke-dashoffset: 0; }
+}
+
+/* ===== TABLE ===== */
+table {
+    border-collapse: collapse;
+    width: 100%;
+    table-layout: fixed;
+}
+td {
+    border: 1px solid rgba(255,255,255,0.2);
+    padding: 6px;
+    vertical-align: top;
+    text-align: center;
+}
+.stage-label {
+    font-weight: bold;
+    background: rgba(255,255,255,0.1);
+}
+
+/* ===== YEAR BOX ===== */
+.year {
+    cursor: pointer;
+    border-radius: 6px;
+    padding: 6px;
+    position: relative;
+    transition: all 0.25s ease;
+}
+.year:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 15px rgba(255,255,255,0.6);
+}
+.year-number {
+    font-size: 1.1rem;
+    font-weight: bold;
+}
+.dob {
+    font-size: 0.8rem;
+    color: #ddd;
+}
+.brief {
+    font-size: 0.8rem;
+    color: #fff;
+    margin-top: 3px;
+}
+.year-badge {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: crimson;
+    color: white;
+    font-size: 0.65rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: bold;
+}
+
+/* ===== COLOR STAGES ===== */
+.stage-early .year { background: rgba(0, 102, 204, 0.4); }
+.stage-hindi .year { background: rgba(0, 204, 102, 0.4); }
+.stage-english .year { background: rgba(255, 165, 0, 0.4); }
+.stage-rohtak .year { background: rgba(138, 43, 226, 0.4); }
+.stage-senior .year { background: rgba(255, 255, 0, 0.4); color: #000; }
+.stage-drop .year { background: rgba(255, 69, 0, 0.4); }
+.stage-college .year { background: rgba(139, 69, 19, 0.4); }
+.stage-gate .year { background: rgba(0, 191, 255, 0.4); }
+.stage-coding .year { background: rgba(0, 255, 127, 0.4); }
+.stage-career .year { background: rgba(255, 0, 0, 0.4); }
+
+/* ===== POPUP BOOK STYLE ===== */
+.popup {
+  display: none;
+  position: fixed;
+  z-index: 999;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.85);
+  align-items: center;
+  justify-content: center;
+}
+.popup-content {
+  display: flex;
+  background: #fff;
+  color: #000;
+  width: 80%;
+  max-width: 900px;
+  border-radius: 8px;
+  overflow: hidden;
+  transform: scale(0.9);
+  transition: transform 0.3s ease;
+}
+.popup.show .popup-content {
+  transform: scale(1);
+}
+.page {
+  flex: 1;
+  padding: 20px;
+  background: #fdf5e6;
+  border-right: 1px solid #ccc;
+}
+.page:last-child {
+  border-right: none;
+}
+.close-btn {
+  position: absolute;
+  top: 20px; right: 30px;
+  font-size: 30px;
+  cursor: pointer;
+  color: white;
+}
+td.year {
+    position: relative;
+    padding-top: 20px; /* space for skill badge at top */
+    text-align: center;
+}
+
+/* Always visible skill badge */
+.skill-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, #ff512f, #dd2476);
+    color: white;
+    font-size: 0.7rem;
+    font-weight: bold;
+    padding: 2px 8px;
+    border-radius: 12px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    animation: pulseSkill 1.5s infinite;
+    margin-bottom: 5px; /* gap between badge and year number */
+}
+
+@keyframes pulseSkill {
+    0% { transform: scale(1); box-shadow: 0 0 5px rgba(255,0,0,0.6); }
+    50% { transform: scale(1.1); box-shadow: 0 0 10px rgba(255,0,0,0.8); }
+    100% { transform: scale(1); box-shadow: 0 0 5px rgba(255,0,0,0.6); }
+}
+
+.legend {
+    text-align: center;
+    margin-bottom: 20px;
+    position: relative;
+}
+
+.legend button {
+    margin: 5px;
+    padding: 8px 14px;
+    background: rgba(255,255,255,0.1);
+    color: white;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: bold;
+    position: relative;
+    z-index: 2;
+}
+
+/* Hover Water Drop + Scale */
+.legend button:hover {
+    background: rgba(255,255,255,0.3);
+    transform: scale(1.1);
+    box-shadow: 0 0 10px rgba(255,255,255,0.6);
+}
+
+/* Red Arrow Styling */
+.arrow-path {
+    position: absolute;
+    top: -15px;
+    left: 0;
+    z-index: 1;
+}
+
+/* Hide all years first when filtered */
+.year.hidden {
+    display: none !important;
+}
+.popup {
+    display: none;
+    position: fixed;
+    z-index: 999;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.8);
+}
+
+.popup-content.book {
+    background: #fff;
+    color: black;
+    width: 80%;
+    margin: 5% auto;
+    border-radius: 10px;
+    display: flex;
+    overflow: hidden;
+}
+
+.page {
+    flex: 1;
+    padding: 20px;
+    background: #f5f5dc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.left-page {
+    border-right: 1px solid #643a3a;
+}
+
+.passport-photo {
+    width: 120px;
+    height: 150px;
+    object-fit: cover;
+    border: 2px solid #333;
+    border-radius: 4px;
+}
+
+.close-btn {
+    font-size: 28px;
+    cursor: pointer;
+    float: right;
+}
+
+.right-page {
+    text-align: left;
+}
+/* ===== MOBILE FRIENDLY TIMELINE ===== */
+@media (max-width: 768px) {
+    /* Make filter buttons wrap and be smaller */
+    .legend {
+        flex-wrap: wrap;
+        gap: 5px;
+        margin: 10px;
+    }
+    .legend button {
+        font-size: 0.8rem;
+        padding: 6px 10px;
+    }
+    .arrow-path {
+        display: none; /* Hide red arrow on small screens */
+    }
+
+    /* Make table scrollable horizontally */
+    table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+    tr {
+        display: inline-block;
+        vertical-align: top;
+        margin-right: 10px;
+    }
+    td {
+        display: block;
+        min-width: 150px;
+    }
+    .stage-label {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        font-size: 0.9rem;
+    }
+
+    /* Year boxes larger tap area */
+    .year {
+        padding: 10px;
+        margin-bottom: 6px;
+    }
+    .year-number {
+        font-size: 1rem;
+    }
+    .dob, .brief {
+        font-size: 0.75rem;
+    }
+
+    /* Popup full screen on mobile */
+    .popup-content {
+        flex-direction: column;
+        width: 95%;
+        max-width: none;
+    }
+    .page {
+        padding: 15px;
+    }
+    .left-page {
+        border-right: none;
+        border-bottom: 1px solid #ccc;
+        justify-content: center;
+    }
+    .passport-photo {
+        width: 100px;
+        height: 130px;
+    }
+    .close-btn {
+        top: 10px;
+        right: 15px;
+        font-size: 26px;
+    }
+}
+/* Default for dark overlay without content */
+.close-btn {
+    color: white;
+}
+
+/* Inside white popup content */
+.popup-content .close-btn {
+    color: black !important;
+}
+
+
+</style>
+</head>
+<body>
+
+<canvas id="bg"></canvas>
+
+<h1>My Life Journey<br>DOB: 1 Nov 1997</h1>
+
+<div class="legend">
+    <!-- Red Curve Arrow -->
+    <svg class="arrow-path" width="650" height="60" viewBox="0 0 650 60">
+        <path d="M20,30 Q150,-20 300,30 T600,30" stroke="red" stroke-width="3" fill="transparent" />
+    </svg>
+
+    <!-- Filter Buttons -->
+    <button id="filter-all" data-filter="all">All</button>
+    <button id="filter-early" data-filter="stage-early">Home Learning</button>
+    <button id="filter-hindi" data-filter="stage-hindi">Hindi Medium</button>
+    <button id="filter-english" data-filter="stage-english">English Medium</button>
+    <button id="filter-rohtak" data-filter="stage-rohtak">Rohtak School</button>
+    <button id="filter-senior" data-filter="stage-senior">Senior Secondary</button>
+    <button id="filter-drop" data-filter="stage-drop">Drop Year</button>
+    <button id="filter-college" data-filter="stage-college">BTech College</button>
+    <button id="filter-gate" data-filter="stage-gate">GATE Prep</button>
+    <button id="filter-coding" data-filter="stage-coding">Coding & Web Dev</button>
+    <button id="filter-career" data-filter="stage-career">Career</button>
+</div>
+
+
+<table>
+
+<!-- EARLY CHILDHOOD -->
+<tr class="stage-early">
+<td class="stage-label">🏠 Early Childhood (Home Learning)</td>
+<td class="year" id="year-1997"
+    data-detail="🌟 Born on November 1, 1997, in Bhiwani, Haryana.  
+👩‍👩‍👦 First 4.5 years were filled with learning from parents, especially mother’s guidance in values and manners.  
+🧸 Played with neighborhood children, built early social and motor skills.  
+📚 Developed curiosity and a habit of asking many questions.  
+🎯 Laid the foundation for future schooling."
+    data-photo="./images/2024.jpg">
+    <div class="year-number">1997</div>
+    <div class="dob">Born 1 Nov 1997</div>
+    <div class="brief">Birth in Bhiwani</div>
+</td>
+<td class="year" id="year-1998" data-detail="👶 At age 1, began speaking first words and imitating family conversations.  
+🖐 Learned basic social gestures like waving and greeting.  
+🎶 Exposed to folk songs and stories told by elders.  
+🧠 Early memory skills developed through repeated storytelling.">
+    <div class="year-number">1998</div>
+    <div class="dob">1 yr on 1 Nov 1998</div>
+    <div class="brief">Home learning begins</div>
+</td>
+<td class="year" id="year-1999" data-detail="🎨 Enjoyed playful learning—drawing shapes, singing rhymes.  
+🚶 Active in outdoor play, building physical coordination.  
+🗣 Improved speaking clarity and vocabulary.  
+💬 Showed early signs of leadership in peer playgroups.">
+    <div class="year-number">1999</div>
+    <div class="dob">2 yrs on 1 Nov 1999</div>
+    <div class="brief">Play & learn</div>
+</td>
+<td class="year" id="year-2000" data-detail="🧩 Increasingly curious about objects and how things work.  
+📖 Asked many 'why' questions, sparking learning habits.  
+👨‍👩‍👦 More bonding time with family members.  
+🎯 Readiness for structured learning growing day by day.">
+    <div class="year-number">2000</div>
+    <div class="dob">3 yrs on 1 Nov 2000</div>
+    <div class="brief">Curious mind</div>
+</td>
+<td class="year" id="year-2001" data-detail="🏫 By age 4, able to recognize alphabets and numbers.  
+🎯 Showed discipline in small daily routines.  
+📚 Parents began informal preparation for school.  
+👨‍👩‍👦 Excited to join a formal school environment.">
+    <div class="year-number">2001</div>
+    <div class="dob">4 yrs on 1 Nov 2001</div>
+    <div class="brief">School-ready</div>
+</td>
+</tr>
+
+<!-- HINDI MEDIUM -->
+<tr class="stage-hindi">
+<td class="stage-label">📚 Hindi Medium School (KM Middle, Bhiwani)</td>
+<td class="year" id="year-2002" data-detail="📘 Admitted to LKG at KM Middle School at age 4.5.  
+🎯 Adapted quickly to formal learning routines.  
+📖 Enjoyed storytelling and reciting poems in Hindi.  
+🏆 Began building confidence in school settings.">
+    <div class="year-number">2002</div>
+    <div class="dob">5 yrs on 1 Nov 2002</div>
+    <div class="brief">LKG admission</div>
+</td>
+<td class="year" id="year-2003" data-detail="🏅 LKG topper, stood 1st in class at age 5.5.  
+📚 Recognized for handwriting and neat work.  
+🎯 Loved participating in recitation contests.  
+🧠 Memory and retention skills improved significantly.">
+    <span class="year-badge">Skill: Topper</span>
+    <div class="year-number">2003</div>
+    <div class="dob">6 yrs on 1 Nov 2003</div>
+    <div class="brief">LKG Pass</div>
+</td>
+<td class="year" id="year-2004" data-detail="🏆 Won 2nd prize in UKG competitions.  
+📚 Expanded vocabulary in Hindi.  
+🎯 Developed interest in mathematics basics.  
+👨‍👩‍👦 Enjoyed family encouragement for studies.">
+    <div class="year-number">2004</div>
+    <div class="dob">7 yrs on 1 Nov 2004</div>
+    <div class="brief">Average phase</div>
+</td>
+<td class="year" id="year-2005" data-detail="📖 Passed 1st standard successfully.  
+💯 Maintained consistent attendance.  
+🎯 Practiced daily writing and reading habits.  
+🏫 Enjoyed group learning activities.">
+    <span class="year-badge">Skill: Consistency</span>
+    <div class="year-number">2005</div>
+    <div class="dob">8 yrs on 1 Nov 2005</div>
+    <div class="brief">Good progress</div>
+</td>
+<td class="year" id="year-2006" data-detail="📚 Passed 2nd standard with flying colors.  
+🎯 Recognized for punctuality and attendance.  
+🧮 Started solving mental math puzzles.  
+🏆 Participated in small inter-class competitions.">
+    <div class="year-number">2006</div>
+    <div class="dob">9 yrs on 1 Nov 2006</div>
+    <div class="brief">Full attendance</div>
+</td>
+<td class="year" id="year-2007" data-detail="📖 Passed 3rd standard (Hindi medium) at age 9.5.  
+🏆 Consistent academic performance.  
+🎯 Confident in public speaking in Hindi.  
+📚 Prepared for transition to English medium.">
+    <div class="year-number">2007</div>
+    <div class="dob">10 yrs on 1 Nov 2007</div>
+    <div class="brief">Consistent</div>
+</td>
+</tr>
+
+<!-- ENGLISH MEDIUM -->
+<tr class="stage-english">
+<td class="stage-label">📝 English Medium (Vaish Model, Bhiwani)</td>
+<td class="year" id="year-2008" data-detail="📚 Switched to English medium in Vaish Model School.  
+🗣 Cleared English interview, repeated 3rd standard for language strengthening.  
+🎯 Worked hard on English reading and writing.  
+👨‍👩‍👦 Gained confidence in mixed-language environment.">
+    <span class="year-badge">Skill: English Base</span>
+    <div class="year-number">2008</div>
+    <div class="dob">11 yrs on 1 Nov 2008</div>
+    <div class="brief">3rd class again</div>
+</td>
+<td class="year" id="year-2009" data-detail="📖 Passed 4th standard with improved English fluency.  
+🎯 Participated in small speech competitions.  
+📚 Improved comprehension skills in science and math.  
+🏫 Balanced studies with extracurriculars.">
+    <div class="year-number">2009</div>
+    <div class="dob">12 yrs on 1 Nov 2009</div>
+    <div class="brief">4th class</div>
+</td>
+<td class="year" id="year-2010" data-detail="📚 Passed 5th standard successfully.  
+🎯 Engaged in group projects and presentations.  
+📖 Increased vocabulary and reading comprehension.  
+🏆 Won small class awards.">
+    <div class="year-number">2010</div>
+    <div class="dob">13 yrs on 1 Nov 2010</div>
+    <div class="brief">5th class</div>
+</td>
+<td class="year" id="year-2011" data-detail="📚 Passed 6th standard.  
+🖋 Learned advanced sentence writing.  
+🎯 Worked on English essays and compositions.  
+🏆 Represented class in quiz events.">
+    <div class="year-number">2011</div>
+    <div class="dob">14 yrs on 1 Nov 2011</div>
+    <div class="brief">6th class</div>
+</td>
+<td class="year" id="year-2012" data-detail="📚 Passed 7th standard—final year in Bhiwani school.  
+🎯 Achieved good grades in English and science.  
+📖 Prepared for moving to new school in Rohtak.  
+👨‍👩‍👦 Built strong academic base.">
+    <div class="year-number">2012</div>
+    <div class="dob">15 yrs on 1 Nov 2012</div>
+    <div class="brief">7th class</div>
+</td>
+</tr>
+
+<!-- ROHTAK -->
+<tr class="stage-rohtak">
+<td class="stage-label">🏆 Rohtak School Life (Shiksha Bharti)</td>
+<td class="year" id="year-2013" data-detail="🏫 Joined Shiksha Bharti School, Rohtak in 8th standard after moving from Bhiwani.  
+♟ Won medals in inter-school chess competitions, showing strong strategic thinking skills.  
+🎯 Adapted quickly to new environment and friends.  
+📚 Continued academic performance in English medium.">
+    <span class="year-badge">Skill: Chess</span>
+    <div class="year-number">2013</div>
+    <div class="dob">16 yrs on 1 Nov 2013</div>
+    <div class="brief">8th class</div>
+</td>
+<td class="year" id="year-2014" data-detail="📚 9th standard, actively participated in Shakha camps organised by Rashtriya Swayamsevak Sangh (RSS).  
+⛺ Learned discipline, leadership, and teamwork through outdoor training and cultural activities.  
+🏆 Represented school in various events.  
+📖 Built strong personality and confidence.">
+    <span class="year-badge">Skill: Leadership</span>
+    <div class="year-number">2014</div>
+    <div class="dob">17 yrs on 1 Nov 2014</div>
+    <div class="brief">Shakha camp</div>
+</td>
+<td class="year" id="year-2015" data-detail="🎓 Passed 10th CBSE with 8 CGPA.  
+📚 Balanced academics with sports and cultural activities.  
+🎯 Improved in science and mathematics, building foundation for higher studies.  
+🏆 Recognized by teachers for consistent performance.">
+    <span class="year-badge">Skill: Focus</span>
+    <div class="year-number">2015</div>
+    <div class="dob">18 yrs on 1 Nov 2015</div>
+    <div class="brief">10th: 8 CGPA</div>
+</td>
+</tr>
+
+<!-- SENIOR SECONDARY -->
+<tr class="stage-senior">
+<td class="stage-label">🎓 Senior Secondary</td>
+<td class="year" id="year-2016" data-detail="🏫 Joined Green Valley Public School for 11th standard (Science Stream).  
+⚙ Focused on Physics, Chemistry, and Mathematics for engineering preparation.  
+📚 Participated in science exhibitions and quiz contests.  
+🎯 Began self-study discipline for competitive exams.">
+    <span class="year-badge">Skill: Science Base</span>
+    <div class="year-number">2016</div>
+    <div class="dob">19 yrs on 1 Nov 2016</div>
+    <div class="brief">11th class</div>
+</td>
+<td class="year" id="year-2017" data-detail="🎓 Passed 12th CBSE with 76.4% in Science stream.  
+📚 Strong in mathematics and mechanics.  
+🎯 Decided to pursue engineering career.  
+🏆 Prepared for entrance exams like JEE Mains.">
+    <div class="year-number">2017</div>
+    <div class="dob">20 yrs on 1 Nov 2017</div>
+    <div class="brief">12th: 76.4%</div>
+</td>
+</tr>
+
+<!-- DROP YEAR -->
+<tr class="stage-drop">
+<td class="stage-label">📖 Drop Year (JEE Prep)</td>
+<td class="year" id="year-2018" data-detail="📚 Took a dedicated drop year for JEE exam preparation.  
+🏫 Joined Aakash Institute, Rohtak for coaching in Physics, Chemistry, and Mathematics.  
+🎯 Studied in structured schedule but faced difficulty in high competition.  
+💡 Gained deep understanding of concepts, even though JEE rank was not enough for top IIT/NIT.">
+    <span class="year-badge">Skill: Exam Strategy</span>
+    <div class="year-number">2018</div>
+    <div class="dob">21 yrs on 1 Nov 2018</div>
+    <div class="brief">JEE prep</div>
+</td>
+</tr>
+
+<!-- COLLEGE -->
+<tr class="stage-college">
+<td class="stage-label">🏛️ BTech Mechanical (CDLSIET)</td>
+<td class="year" id="year-2019" data-detail="🎓 Admitted to Ch. Devi Lal State Institute of Engineering & Technology in Mechanical Engineering.  
+🏫 Started exploring subjects like Thermodynamics, Mechanics, and Manufacturing.  
+🎯 Built network with classmates and seniors.  
+📚 Maintained good academic discipline.">
+    <div class="year-number">2019</div>
+    <div class="dob">22 yrs on 1 Nov 2019</div>
+    <div class="brief">BTech start</div>
+</td>
+<td class="year" id="year-2020" data-detail="👨‍🏫 Served as Class Representative (CR) for mechanical branch.  
+🏭 Completed a 1-month internship as Quality Head Assistant after 4th semester.  
+🛠 Hands-on with Vernier Caliper, Micrometer, Digital Vernier Caliper for precision measurements.  
+💻 Learned ANSYS, Microsoft Office, Python, MATLAB, and C language coding during college.  
+🎯 Built leadership, event coordination, and technical measurement skills simultaneously.">
+    <span class="year-badge">Skill: QA Tools</span>
+    <div class="year-number">2020</div>
+    <div class="dob">23 yrs on 1 Nov 2020</div>
+    <div class="brief">Internship + Skills</div>
+</td>
+<td class="year" id="year-2021" data-detail="📚 Focused on core mechanical engineering subjects.  
+💻 Developed interest in technology and automation tools.  
+🎯 Worked on academic projects and lab experiments.  
+🏆 Prepared for final year completion.">
+    <div class="year-number">2021</div>
+    <div class="dob">24 yrs on 1 Nov 2021</div>
+    <div class="brief">Academics</div>
+</td>
+<td class="year" id="year-2022" data-detail="🎓 Successfully completed BTech Mechanical Engineering with 78.55% marks.  
+💼 Selected by Braily.com for Subject Matter Expert (Work From Home) after 3 rigorous rounds — Technical Interview, HR Interview, and Written Exam.  
+📚 Role involved providing expert guidance in mechanical engineering concepts.  
+🎯 Resigned within a month to focus on GATE preparation.  
+💡 Learned corporate communication, remote work culture, and subject depth.">
+    <span class="year-badge">Skill: SME</span>
+    <div class="year-number">2022</div>
+    <div class="dob">25 yrs on 1 Nov 2022</div>
+    <div class="brief">BTech + SME Job</div>
+</td>
+</tr>
+
+<!-- GATE -->
+<tr class="stage-gate">
+<td class="stage-label">📘 GATE Preparation</td>
+<td class="year" id="year-2023" data-detail="📚 Prepared for GATE Mechanical Engineering exam for the first time.  
+🎯 Faced difficulty in managing syllabus depth and speed.  
+💡 Learned exam pattern and problem-solving approaches.  
+📊 Result: Not qualified, but gained valuable competitive exam experience.">
+    <span class="year-badge">Skill: Problem Solving</span>
+    <div class="year-number">2023</div>
+    <div class="dob">26 yrs on 1 Nov 2023</div>
+    <div class="brief">GATE try</div>
+</td>
+<td class="year" id="year-2024" data-detail="📚 Second GATE attempt with improved study strategy.  
+🎯 Despite better preparation, could not secure qualifying marks.  
+💡 Realized need to focus on other career skills.  
+📊 Decided to diversify into coding and web development.">
+    <div class="year-number">2024</div>
+    <div class="dob">27 yrs on 1 Nov 2024</div>
+    <div class="brief">GATE fail</div>
+</td>
+</tr>
+
+<!-- CODING -->
+<tr class="stage-coding">
+<td class="stage-label">💻 Coding & Web Dev</td>
+<td class="year" id="year-2024-coding" data-detail="💻 Learned MERN stack development using ChatGPT and online resources.  
+📱 Built market-ready web applications including restaurant menu apps, product catalogs, and booking systems.  
+🧠 Strengthened problem-solving skills through real projects.  
+🏫 Took trial of digital menu service in MDU canteen to test in real-world environment.">
+    <span class="year-badge">Skill: Web Dev</span>
+    <div class="year-number">2024</div>
+    <div class="dob">27 yrs on 1 Nov 2024</div>
+    <div class="brief">Web dev</div>
+</td>
+</tr>
+
+<!-- CAREER -->
+<tr class="stage-career">
+<td class="stage-label">⚙️ Apprenticeship</td>
+<td class="year" id="year-2025" data-detail="🏭 Joined Rajiv Gandhi Thermal Power Plant for apprenticeship training.  
+💻 Developed advanced Excel VBA automation tools to speed up reporting tasks.  
+📊 Automated data collection and analysis, saving significant work hours.  
+🎯 Gained practical industrial exposure in mechanical and software integration.">
+    <span class="year-badge">Skill: VBA Automation</span>
+    <div class="year-number">2025</div>
+    <div class="dob">28 yrs on 1 Nov 2025</div>
+    <div class="brief">Apprentice</div>
+</td>
+</tr>
+
+</table>
+
+
+
+<div id="popup" class="popup">
+    <div class="popup-content book">
+        <div class="page left-page">
+            <img id="popup-photo" class="passport-photo" src="" alt="Year Photo">
+        </div>
+        <div class="page right-page">
+            <span class="close-btn" onclick="closePopup()">×</span>
+            <h2 id="popup-year"></h2>
+            <p id="popup-text"></p>
+        </div>
+    </div>
+</div>
+
+
+<script>
+// ===== PARTICLE BACKGROUND =====
+const canvas = document.getElementById('bg');
+const ctx = canvas.getContext('2d');
+let particles = [];
+function resize(){canvas.width=innerWidth;canvas.height=innerHeight;}
+window.addEventListener('resize',resize);resize();
+for(let i=0;i<60;i++){
+    particles.push({x:Math.random()*canvas.width,y:Math.random()*canvas.height,vx:(Math.random()-0.5)*1,vy:(Math.random()-0.5)*1});
+}
+function draw(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.fillStyle='white';
+    for(let p of particles){
+        ctx.beginPath();
+        ctx.arc(p.x,p.y,2,0,Math.PI*2);
+        ctx.fill();
+        p.x+=p.vx; p.y+=p.vy;
+        if(p.x<0||p.x>canvas.width) p.vx*=-1;
+        if(p.y<0||p.y>canvas.height) p.vy*=-1;
+    }
+    requestAnimationFrame(draw);
+}
+draw();
+
+// ===== POPUP =====
+document.querySelectorAll('.year').forEach(cell=>{
+    cell.addEventListener('click',()=>{
+        document.getElementById('popup-year').innerText = cell.querySelector('.year-number').innerText;
+        document.getElementById('popup-text').innerText = cell.dataset.detail;
+        document.getElementById('popup').classList.add('show');
+        document.getElementById('popup').style.display='flex';
+    });
+});
+function closePopup(){
+    document.getElementById('popup').style.display='none';
+    document.getElementById('popup').classList.remove('show');
+}
+
+</script>
+<script>
+document.querySelectorAll('.legend button').forEach(button => {
+    button.addEventListener('click', () => {
+        let filterClass = button.dataset.filter;
+
+        // Show all if 'all' clicked
+        if (filterClass === 'all') {
+            document.querySelectorAll('.year').forEach(year => {
+                year.classList.remove('hidden');
+            });
+        } else {
+            document.querySelectorAll('.year').forEach(year => {
+                if (year.closest('tr').classList.contains(filterClass)) {
+                    year.classList.remove('hidden');
+                } else {
+                    year.classList.add('hidden');
+                }
+            });
+        }
+    });
+});
+document.querySelectorAll('.year').forEach(cell => {
+    cell.addEventListener('click', () => {
+        document.getElementById('popup-year').innerText = cell.querySelector('.year-number').innerText;
+        document.getElementById('popup-text').innerText = cell.dataset.detail;
+        document.getElementById('popup-photo').src = cell.dataset.photo || './images/2024.jpg';
+        document.getElementById('popup').style.display = 'flex';
+    });
+});
+
+function closePopup() {
+    document.getElementById('popup').style.display = 'none';
+}
+
+</script>
+
+</body>
+</html>
